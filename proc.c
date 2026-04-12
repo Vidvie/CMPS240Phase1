@@ -532,3 +532,17 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+int totalNumOfProcs(void){
+  int num = 0;
+  struct proc *pro;
+  acquire(&ptable.lock);
+  for(pro=ptable.proc; pro<&ptable.proc[NPROC]; pro++){
+    if(pro->state != UNUSED){
+      cprintf("Process name: %s, PID: %d\n", pro->name, pro->pid);
+      num++;
+    }
+  }
+  release(&ptable.lock);
+  return num;
+}

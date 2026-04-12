@@ -144,6 +144,23 @@ getcmd(char *buf, int nbuf)
 int
 main(void)
 {
+char user[20];
+char pass[20];
+
+printf(1,"Username: ");
+gets(user, sizeof(user));
+user[strlen(user)-1] = 0;
+
+printf(1, "Password: ");
+gets(pass, sizeof(pass));
+pass[strlen(pass)-1] = 0;
+
+if(strcmp(user, "admin") != 0 || strcmp(pass, "1234") != 0){
+  printf(1, "Wrong credentials. Exiting...\n");
+  exit();
+}
+printf(1, "Login successful!\n");
+
   static char buf[100];
   int fd;
 
