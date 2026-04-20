@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#define DEFAULT_PRIORITY 5
 
 struct {
   struct spinlock lock;
@@ -88,6 +89,7 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->priority = DEFAULT_PRIORITY;
 
   release(&ptable.lock);
 
@@ -199,7 +201,7 @@ fork(void)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
-
+  np->priority = (np->pid % 3) + 1;
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
 
@@ -325,33 +327,56 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
-  
+  static int last_index = NPROC-1; //Ensures all processes get equal CPU time.
+
   for(;;){
     // Enable interrupts on this processor.
     sti();
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
+    int best = 0;
+    for(p=ptable.proc; p<&ptable.proc[NPROC]; p++){
+      if(p->state != RUNNABLE){
         continue;
-
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
+      }
+      if(best == 0 || p->priority < best){
+        best = p->priority; // find runnable process with lowest priority value.
+      }
     }
+    if(best == 0){ // no runnable process available.
+      release(&ptable.lock);
+      continue;
+    }
+/* The following code picks the lowest priority value process to execute partially
+and ensures Round Robin for equal priority value processes. */
+    struct proc *Prio_Proc = 0;
+    int index;
+    int s = (last_index + 1) % NPROC;
+    for(int i=0; i<NPROC; i++){
+      index = (s+i) % NPROC;
+      p = &ptable.proc[index];
+      if(p->state == RUNNABLE && p->priority == best){
+        Prio_Proc = p;
+        last_index = index;
+        break;
+      }
+/* last_index saves the index of the last process picked by the scheduler
+so that it can continue searching from that index+1 for a process with the same
+priority, so it can go to the same process as before or go to the closest
+process with the same priority value. This ensures that equal priority
+processes take turns.*/
+    }
+    if(!Prio_Proc){
+      release(&ptable.lock);
+    }
+    c->proc = Prio_Proc;
+    switchuvm(Prio_Proc);
+    Prio_Proc->state = RUNNING;
+    swtch(&(c->scheduler), Prio_Proc->context);
+    switchkvm();
+    c->proc = 0;
     release(&ptable.lock);
-
   }
 }
 
@@ -523,7 +548,7 @@ procdump(void)
       state = states[p->state];
     else
       state = "???";
-    cprintf("%d %s %s", p->pid, state, p->name);
+    cprintf("%d %s %s %d", p->pid, state, p->name, p->priority);
     if(p->state == SLEEPING){
       getcallerpcs((uint*)p->context->ebp+2, pc);
       for(i=0; i<10 && pc[i] != 0; i++)
