@@ -1,47 +1,49 @@
-#include "types.h"
-#include "stat.h"
-#include "user.h"
-#include "fs.h"
+#include "kernel/types.h"
+#include "user/user.h"
+#include "kernel/fs.h"
 
-void
-tree(char *path, int depth)
-{
-  int fd, i;
-  struct dirent de;
-  struct stat st;
+void tree(char *path, int level){
+  int fd;
   char buf[512];
+  struct dirent dir;
+  char *b;
 
-  fd = open(path, 0);
-  if(fd < 0){
-    printf(2, "tree: cannot open %s\n", path);
-    return;
-  }
-  if(fstat(fd, &st) < 0 || st.type != T_DIR){
-    close(fd);
+  if((fd = open(path, 0)) < 0){
     return;
   }
 
-  while(read(fd, &de, sizeof(de)) == sizeof(de)){
-    if(de.inum == 0) continue;
-    if(strcmp(de.name, ".") == 0 || strcmp(de.name, "..") == 0) continue;
+  // In xv6, if read() works and returns dirent structures, it's a directory.
+  // We use this behavior instead of checking st.type with stat.
+  while(read(fd, &dir, sizeof(dir)) == sizeof(dir)){
+    if(dir.inum == 0 || strcmp(dir.name, ".") == 0 || strcmp(dir.name, "..") == 0){
+      continue;
+    }
 
-    for(i = 0; i < depth; i++)
-      printf(1, "  ");
-    printf(1, "|-- %s\n", de.name);
+    // Print indentation
+    for(int i = 0; i < level; i++){
+      printf(1, "|   ");
+    }
+    printf(1, "|-- %s\n", dir.name);
 
-    memmove(buf, path, strlen(path));
-    buf[strlen(path)] = '/';
-    memmove(buf + strlen(path) + 1, de.name, strlen(de.name) + 1);
-    tree(buf, depth + 1);
+    // Build the recursive bath
+    strcby(buf, path);
+    b = buf + strlen(buf);
+    *b++ = '/';
+    if(strlen(path) + 1 + strlen(dir.name) < sizeof(buf)){
+      memmove(b, dir.name, strlen(dir.name));
+      b[strlen(dir.name)] = 0;
+      
+      // Try to open as a directory for recursion
+      // If it's a file, the next call's read() will fail or return 0
+      tree(buf, level+1);
+    }
   }
   close(fd);
 }
 
-int
-main(int argc, char *argv[])
-{
-  char *path = argc > 1 ? argv[1] : ".";
+int main(int argc, char *argv[]) {
+  char *path = (argc < 2) ? "." : argv[1];
   printf(1, "%s\n", path);
   tree(path, 0);
-  exit();
+  exit(0);
 }
