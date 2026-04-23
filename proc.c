@@ -289,7 +289,9 @@ wait(void)
         pid = p->pid;
         kfree(p->kstack);
         p->kstack = 0;
-        freevm(p->pgdir);
+        if(p->isthread == 0){
+          freevm(p->pgdir);
+        }
         p->pid = 0;
         p->parent = 0;
         p->name[0] = 0;
@@ -545,4 +547,31 @@ int totalNumOfProcs(void){
   }
   release(&ptable.lock);
   return num;
+}
+
+int clone(void *stack){
+  int i, pid;
+  struct proc *np;
+  struct proc *curproc = myproc();
+  if((np = allocproc()) == 0){
+    return -1;
+  }
+  np->pgdir = curproc->pgdir;
+  np->sz = curproc->sz;
+  np->parent = curproc;
+  np->isthr = 1;
+  *np->tf = *curproc->tf;
+  np->tf->esp = (uint)stack + 4096;
+  np->tf->eax = 0;
+  for(i = 0; i < NOFILE; i++)
+    if(curproc->ofile[i]){
+      np->ofile[i] = filedup(curproc->ofile[i]);
+    }
+  np->cwd = idup(curproc->cwd);
+  safestrcpy(np->name, curproc->name, sizeof(curproc->name));
+  pid = np->pid;
+  acquire(&ptable.lock);
+  np->state = RUNNABLE;
+  release(&ptable.lock);
+  return pid;
 }
