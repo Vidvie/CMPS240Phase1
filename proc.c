@@ -549,7 +549,7 @@ int totalNumOfProcs(void){
   return num;
 }
 
-int clone(void){
+int clone(void *fcn, void *stack){
   int pid;
   struct proc *np;
   struct proc *curproc = myproc();
@@ -564,6 +564,11 @@ int clone(void){
   np->tf->esp = (uint)stack + 4096 - 4;
   *(uint*)(np->tf->esp) = 0xffffffff;
   np->tf->eax = 0;
+  uint sp = (uint)stack + 4096;
+  sp -= 4;
+  *(uint*)sp = 0xffffffff;
+  np->tf->esp = sp;
+  np->tf->eip = (uint)fcn;
   for(int i = 0; i < NOFILE; i++){
     if(curproc->ofile[i]){
       np->ofile[i] = filedup(curproc->ofile[i]);
