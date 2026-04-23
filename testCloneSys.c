@@ -1,21 +1,26 @@
 #include "types.h"
 #include "user.h"
 
-int count = 0;
+int counter = 0;
+
+void thread_func(void){
+  counter++;
+  printf(1, "thread: counter = %d\n", counter);
+  exit();
+}
 
 int main(void){
-  count = 10;
-  int pid = clone();
+  char *stack = malloc(4096);
+  counter = 10;
+  int pid = clone(stack);
   if(pid < 0){
     printf(1, "clone failed\n");
     exit();
   }
   if(pid == 0){
-    count++;
-    printf(1, "thread counter is %d\n", count);
-    exit();
+    thread_func();
   }
   wait();
-  printf(1, "parent counter is %d\n", count);
+  printf(1, "parent: counter = %d\n", counter);
   exit();
 }
