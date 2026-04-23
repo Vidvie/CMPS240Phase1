@@ -561,7 +561,8 @@ int clone(void *stack){
   np->parent = curproc;
   np->isthr = 1;
   *np->tf = *curproc->tf;
-  np->tf->esp = (uint)stack + 4096;
+  np->tf->esp = (uint)stack + 4096 - 4;
+  *(uint*)(np->tf->esp) = 0xffffffff;
   np->tf->eax = 0;
   for(i = 0; i < NOFILE; i++)
     if(curproc->ofile[i]){
