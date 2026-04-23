@@ -95,9 +95,9 @@ int sys_totalNumOfProcs(void){
 }
 
 int sys_clone(void){
-  int stack;
-  if(argint(0, &stack) < 0){
+  int stack, fcn;
+  if(argint(0, &fcn) < 0 || argint(1, &stack) < 0){
     return -1;
   }
-  return clone((void*)stack);
+  return clone((void*)fcn, (void*)stack);
 }
