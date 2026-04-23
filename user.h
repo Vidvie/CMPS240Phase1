@@ -24,6 +24,7 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int totalNumOfProcs(void);
+int clone(void *stack);
 
 // ulib.c
 int stat(const char*, struct stat*);
