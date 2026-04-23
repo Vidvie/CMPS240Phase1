@@ -21,6 +21,6 @@ int main(void){
     Testfunc();
   }
   wait();
-  printf(1, "parent: counter = %d\n", counter);
+  printf(1, "parent: counter = %d\n", count);
   exit();
 }
