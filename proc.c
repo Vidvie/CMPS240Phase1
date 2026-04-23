@@ -549,8 +549,7 @@ int totalNumOfProcs(void){
   return num;
 }
 
-int clone(void *stack){
-  int i, pid;
+int clone(void){
   struct proc *np;
   struct proc *curproc = myproc();
   if((np = allocproc()) == 0){
@@ -559,18 +558,17 @@ int clone(void *stack){
   np->pgdir = curproc->pgdir;
   np->sz = curproc->sz;
   np->parent = curproc;
-  np->isthr = 1;
+  np->isthread = 1;
   *np->tf = *curproc->tf;
-  np->tf->esp = (uint)stack + 4096 - 4;
-  *(uint*)(np->tf->esp) = 0xffffffff;
   np->tf->eax = 0;
-  for(i = 0; i < NOFILE; i++)
+  for(int i = 0; i < NOFILE; i++){
     if(curproc->ofile[i]){
       np->ofile[i] = filedup(curproc->ofile[i]);
     }
+  }
   np->cwd = idup(curproc->cwd);
   safestrcpy(np->name, curproc->name, sizeof(curproc->name));
-  pid = np->pid;
+  int pid = np->pid;
   acquire(&ptable.lock);
   np->state = RUNNABLE;
   release(&ptable.lock);
