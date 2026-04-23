@@ -15,7 +15,7 @@ int main(void){
   counter = 10;
   int pid = clone(thread_func, stack);
   if(pid < 0){
-    printf(1, "clone failed\n");
+    printf(1, "Error when trying to clone.\n");
     exit();
   }
   wait();
