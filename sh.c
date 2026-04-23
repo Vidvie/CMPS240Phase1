@@ -12,6 +12,9 @@
 #define BACK  5
 
 #define MAXARGS 10
+#define HISTSIZE 10
+static char history[HISTSIZE][100];
+static int histcount = 0;
 
 struct cmd {
   int type;
@@ -131,13 +134,48 @@ runcmd(struct cmd *cmd)
 }
 
 int
-getcmd(char *buf, int nbuf)
-{
+getcmd(char *buf, int nbuf){
+  int n, hist_idx;
+  char c, seq[2];
+
   printf(2, "$ ");
   memset(buf, 0, nbuf);
-  gets(buf, nbuf);
-  if(buf[0] == 0) // EOF
-    return -1;
+  n = 0;
+  hist_idx = histcount;
+
+  while(read(0, &c, 1) == 1){
+    if(c == 033){
+      read(0, &seq[0], 1);
+      read(0, &seq[1], 1);
+      if(seq[0] == '[' && seq[1] == 'A' && hist_idx > 0 && hist_idx > histcount - HISTSIZE){
+        hist_idx--;
+        while(n-- > 0) write(1, "\b \b", 3);
+        n = strlen(history[hist_idx % HISTSIZE]);
+        memmove(buf, history[hist_idx % HISTSIZE], n + 1);
+        write(1, buf, n);
+      }
+      if(seq[0] == '[' && seq[1] == 'B'){
+        while(n-- > 0) write(1, "\b \b", 3);
+        if(hist_idx < histcount) hist_idx++;
+        if(hist_idx == histcount){
+          n = 0; buf[0] = 0;
+        } else {
+          n = strlen(history[hist_idx % HISTSIZE]);
+          memmove(buf, history[hist_idx % HISTSIZE], n + 1);
+          write(1, buf, n);
+        }
+      }
+      continue;
+    }
+    if(c == '\n' || c == '\r'){ write(1, "\n", 1); break; }
+    if(c == '\b' || c == 127){
+      if(n > 0){ n--; buf[n] = 0; write(1, "\b \b", 3); }
+      continue;
+    }
+    if(n < nbuf - 1){ buf[n++] = c; buf[n] = 0; write(1, &c, 1); }
+  }
+
+  if(buf[0] == 0) return -1;
   return 0;
 }
 
@@ -174,6 +212,8 @@ printf(1, "Login successful!\n");
 
   // Read and run input commands.
   while(getcmd(buf, sizeof(buf)) >= 0){
+    memmove(history[histcount % HISTSIZE], buf, strlen(buf) + 1);
+    histcount++;
     if(buf[0] == 'c' && buf[1] == 'd' && buf[2] == ' '){
       // Chdir must be called by the parent, not the child.
       buf[strlen(buf)-1] = 0;  // chop \n
