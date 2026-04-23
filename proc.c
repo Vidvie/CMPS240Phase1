@@ -289,7 +289,10 @@ wait(void)
         pid = p->pid;
         kfree(p->kstack);
         p->kstack = 0;
-        if(p->isthr == 0){
+        if(p->isthr){
+          kfree((char*)p->tf->esp - (p->tf->esp & (PGSIZE-1)));
+        } 
+        else{
           freevm(p->pgdir);
         }
         p->pid = 0;
