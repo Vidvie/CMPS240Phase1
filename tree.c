@@ -1,49 +1,44 @@
-#include "kernel/types.h"
-#include "user/user.h"
-#include "kernel/fs.h"
+#include "types.h"
+#include "stat.h"
+#include "user.h"
+#include "fs.h"
 
-void tree(char *path, int level){
+void tree(char *path, int depth){
   int fd;
-  char buf[512];
   struct dirent dir;
-  char *b;
-
-  if((fd = open(path, 0)) < 0){
+  struct stat s;
+  char buf[512];
+  fd = open(path, 0);
+  if(fd < 0){
+    printf(2, "Error when trying to open %s\n", path);
     return;
   }
-
-  // In xv6, if read() works and returns dirent structures, it's a directory.
-  // We use this behavior instead of checking st.type with stat.
+  if(fstat(fd, &s) < 0 || s.type != T_DIR){
+    close(fd);
+    return;
+  }
   while(read(fd, &dir, sizeof(dir)) == sizeof(dir)){
-    if(dir.inum == 0 || strcmp(dir.name, ".") == 0 || strcmp(dir.name, "..") == 0){
+    if(dir.inum == 0){
       continue;
     }
-
-    // Print indentation
-    for(int i = 0; i < level; i++){
-      printf(1, "|   ");
+    if(strcmp(dir.name, ".") == 0 || strcmp(dir.name, "..") == 0){
+      continue;
+    }
+    for(int i=0; i<depth; i++){
+      printf(1, "  ");
     }
     printf(1, "|-- %s\n", dir.name);
-
-    // Build the recursive bath
-    strcby(buf, path);
-    b = buf + strlen(buf);
-    *b++ = '/';
-    if(strlen(path) + 1 + strlen(dir.name) < sizeof(buf)){
-      memmove(b, dir.name, strlen(dir.name));
-      b[strlen(dir.name)] = 0;
-      
-      // Try to open as a directory for recursion
-      // If it's a file, the next call's read() will fail or return 0
-      tree(buf, level+1);
-    }
+    memmove(buf, path, strlen(path));
+    buf[strlen(path)] = '/';
+    memmove(buf+strlen(path)+1, dir.name, strlen(dir.name)+1);
+    tree(buf, depth+1);
   }
   close(fd);
 }
 
-int main(int argc, char *argv[]) {
-  char *path = (argc < 2) ? "." : argv[1];
+int main(int argc, char *argv[]){
+  char *path = argc > 1 ? argv[1] : ".";
   printf(1, "%s\n", path);
   tree(path, 0);
-  exit(0);
+  exit();
 }
