@@ -1,0 +1,4 @@
+Hello, i am a dog.
+I love playing with toys.
+I love eating good food.
+I don't have a litter box.

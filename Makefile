@@ -186,7 +186,7 @@ UPROGS=\
     _diff\
 
 fs.img: mkfs README $(UPROGS)
-	./mkfs fs.img README $(UPROGS)
+	./mkfs fs.img README file1.txt file2.txt $(UPROGS)
 
 -include *.d
 
