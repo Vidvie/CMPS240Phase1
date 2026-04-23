@@ -289,10 +289,7 @@ wait(void)
         pid = p->pid;
         kfree(p->kstack);
         p->kstack = 0;
-        if(p->isthr){
-          kfree((char*)p->tf->esp - (p->tf->esp & (PGSIZE-1)));
-        } 
-        else{
+        if(p->isthread == 0){
           freevm(p->pgdir);
         }
         p->pid = 0;
@@ -553,25 +550,19 @@ int totalNumOfProcs(void){
 }
 
 int clone(void){
+  int pid;
   struct proc *np;
   struct proc *curproc = myproc();
-  char *stack;
   if((np = allocproc()) == 0){
     return -1;
   }
-  stack = kalloc();
-  if(stack == 0){
-    np->state = UNUSED;
-    return -1;
-  }
-  memmove(stack, (char*)curproc->tf->esp - PGSIZE, PGSIZE);
   np->pgdir = curproc->pgdir;
   np->sz = curproc->sz;
   np->parent = curproc;
   np->isthr = 1;
   *np->tf = *curproc->tf;
+  np->tf->esp = (uint)stack + 4096;
   np->tf->eax = 0;
-  np->tf->esp = (uint)stack + (curproc->tf->esp & (PGSIZE-1));
   for(int i = 0; i < NOFILE; i++){
     if(curproc->ofile[i]){
       np->ofile[i] = filedup(curproc->ofile[i]);
@@ -579,7 +570,7 @@ int clone(void){
   }
   np->cwd = idup(curproc->cwd);
   safestrcpy(np->name, curproc->name, sizeof(curproc->name));
-  int pid = np->pid;
+  pid = np->pid;
   acquire(&ptable.lock);
   np->state = RUNNABLE;
   release(&ptable.lock);
