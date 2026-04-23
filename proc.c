@@ -289,7 +289,7 @@ wait(void)
         pid = p->pid;
         kfree(p->kstack);
         p->kstack = 0;
-        if(p->isthread == 0){
+        if(p->isthr == 0){
           freevm(p->pgdir);
         }
         p->pid = 0;
