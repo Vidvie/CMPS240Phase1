@@ -181,9 +181,9 @@ UPROGS=\
 	_usertests\
 	_wc\
 	_zombie\
-    _totalProcs\
-    _tree\
-    _diff\
+        _totalProcs\
+        _tree\
+        _diff\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README file1.txt file2.txt $(UPROGS)

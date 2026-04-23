@@ -37,8 +37,14 @@ void tree(char *path, int depth){
 }
 
 int main(int argc, char *argv[]){
-  char *path = argc > 1 ? argv[1] : ".";
-  printf(1, "%s\n", path);
-  tree(path, 0);
+  char *p;
+  if(argc > 1){
+    p = argv[1];
+  }
+  else{
+    p =  ".";
+  }
+  printf(1, "%s\n", p);
+  tree(p, 0);
   exit();
 }
