@@ -3,22 +3,13 @@
 
 int count = 0;
 
-void Testfunc(void){
-  count++;
-  printf(1, "thread: counter = %d\n", count);
-  exit();
-}
-
 int main(void){
-  char *s = malloc(4096);
   count = 10;
-  int pid = clone(s);
-  if(pid < 0){
-    printf(1, "Error when trying to clone.\n");
-    exit();
-  }
+  int pid = clone();
   if(pid == 0){
-    Testfunc();
+    count++;
+    printf(1, "thread: counter = %d\n", count);
+    exit();
   }
   wait();
   printf(1, "parent: counter = %d\n", count);
